@@ -144,9 +144,7 @@ namespace FireBaseMLVisionDemo
 
             var image = new UIImage(imageData);
 
-                        //var cropRectangle = new CGRect();
-
-            image = CropImage(image, (float)CapturePortionView.Frame.X, (float)CapturePortionView.Frame.Y, (float)CapturePortionView.Frame.Width, (float)CapturePortionView.Frame.Height);
+            image = CropImage(image, (float)CapturePortionView.Frame.Left, (float)CapturePortionView.Frame.Top, (float)CapturePortionView.Frame.Width, (float)CapturePortionView.Frame.Height);
 
             ImageView.Image = image;
 
