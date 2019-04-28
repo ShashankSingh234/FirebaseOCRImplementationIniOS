@@ -19,6 +19,10 @@ namespace FireBaseMLVisionDemo
 
         [Outlet]
         [GeneratedCode ("iOS Designer", "1.0")]
+        UIKit.UIView CapturePortionView { get; set; }
+
+        [Outlet]
+        [GeneratedCode ("iOS Designer", "1.0")]
         UIKit.UIImageView ImageView { get; set; }
 
         [Outlet]
@@ -38,6 +42,11 @@ namespace FireBaseMLVisionDemo
             if (CameraView != null) {
                 CameraView.Dispose ();
                 CameraView = null;
+            }
+
+            if (CapturePortionView != null) {
+                CapturePortionView.Dispose ();
+                CapturePortionView = null;
             }
 
             if (ImageView != null) {

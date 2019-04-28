@@ -5,6 +5,8 @@ using UIKit;
 using AVFoundation;
 using CoreFoundation;
 using CoreMedia;
+using CoreGraphics;
+using System.Drawing;
 
 namespace FireBaseMLVisionDemo
 {
@@ -30,6 +32,31 @@ namespace FireBaseMLVisionDemo
 
             TakePhoto.SetTitle("Open camera", UIControlState.Normal);
 
+            //using (CGContext g = UIGraphics.GetCurrentContext())
+            //{
+
+            //    //set up drawing attributes
+            //    g.SetLineWidth(10);
+            //    UIColor.Blue.SetFill();
+            //    UIColor.Red.SetStroke();
+
+            //    //create geometry
+            //    var path = new CGPath();
+
+            //    path.AddLines(new CGPoint[]{
+            //        new CGPoint (100, 200),
+            //        new CGPoint (160, 100),
+            //        new CGPoint (220, 200)});
+
+            //    path.CloseSubpath();
+
+            //    //add geometry to graphics context and draw it
+            //    g.AddPath(path);
+            //    g.DrawPath(CGPathDrawingMode.FillStroke);
+            //}
+
+            CapturePortionView.Layer.BorderColor = UIColor.Cyan.CGColor;
+            CapturePortionView.Layer.BorderWidth = 2.0f;
             // Perform any additional setup after loading the view, typically from a nib.
         }
 
@@ -63,6 +90,8 @@ namespace FireBaseMLVisionDemo
             aVCaptureVideoPreviewLayer.Connection.VideoOrientation = AVCaptureVideoOrientation.Portrait;
             CameraView.Layer.AddSublayer(aVCaptureVideoPreviewLayer);
 
+            CameraView.BringSubviewToFront(CapturePortionView);
+
             DispatchQueue.DefaultGlobalQueue.DispatchAsync(() => { aVCaptureSession.StartRunning(); });
 
             DispatchQueue.MainQueue.DispatchAsync(() => { aVCaptureVideoPreviewLayer.Frame = CameraView.Bounds; });
@@ -77,13 +106,13 @@ namespace FireBaseMLVisionDemo
         {
             if(CameraView.Hidden)
             {
-                CameraView.Hidden = false;
+                CameraView.Hidden = CapturePortionView.Hidden = false;
                 ImageView.Hidden = true;
                 TakePhoto.SetTitle("Capture Image", UIControlState.Normal);
                 return;
             }
 
-            CameraView.Hidden = true;
+            CameraView.Hidden = CapturePortionView.Hidden = true;
             ImageView.Hidden = false;
             TakePhoto.SetTitle("Open Camera", UIControlState.Normal);
 
@@ -114,11 +143,36 @@ namespace FireBaseMLVisionDemo
                 return;
 
             var image = new UIImage(imageData);
+
+                        //var cropRectangle = new CGRect();
+
+            image = CropImage(image, (float)CapturePortionView.Frame.X, (float)CapturePortionView.Frame.Y, (float)CapturePortionView.Frame.Width, (float)CapturePortionView.Frame.Height);
+
             ImageView.Image = image;
 
             var visionImage = new VisionImage(ImageView.Image);
 
             textRecognizer.ProcessImage(visionImage, HandleVisionTextRecognitionCallbackHandler);
+        }
+
+        private UIImage CropImage(UIImage sourceImage, float crop_x, float crop_y, float width, float height)
+        {
+            var imgSize = sourceImage.Size;
+            UIGraphics.BeginImageContext(new SizeF(width, height));
+            var context = UIGraphics.GetCurrentContext();
+            var clippedRect = new RectangleF(0, 0, width, height);
+            context.ClipToRect(clippedRect);
+            var drawRect = new RectangleF(-crop_x, -crop_y, (float)imgSize.Width, (float)imgSize.Height);
+            sourceImage.Draw(drawRect);
+            var modifiedImage = UIGraphics.GetImageFromCurrentImageContext();
+            UIGraphics.EndImageContext();
+            return modifiedImage;
+        }
+
+        [Export("captureOutput:didCapturePhotoForResolvedSettings:")]
+        public void DidCapturePhoto(AVCapturePhotoOutput captureOutput, AVCaptureResolvedPhotoSettings resolvedSettings)
+        {
+
         }
 
         public override void ViewWillDisappear(bool animated)
