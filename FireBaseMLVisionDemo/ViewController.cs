@@ -7,6 +7,7 @@ using CoreFoundation;
 using CoreMedia;
 using CoreGraphics;
 using System.Drawing;
+using System.Threading;
 
 namespace FireBaseMLVisionDemo
 {
@@ -19,6 +20,9 @@ namespace FireBaseMLVisionDemo
 
         VisionApi vision;
         VisionTextRecognizer textRecognizer;
+
+        Timer timer;
+
         protected ViewController(IntPtr handle) : base(handle)
         {
             // Note: this .ctor should not contain any initialization logic.
@@ -82,6 +86,7 @@ namespace FireBaseMLVisionDemo
                 aVCaptureSession.AddOutput(aVCapturePhotoOutput);
                 SetupLivePreview();
             }
+
         }
 
         partial void FlashButton_TouchUpInside(UIButton sender)
@@ -134,7 +139,10 @@ namespace FireBaseMLVisionDemo
 
         private void HandleVisionTextRecognitionCallbackHandler(VisionText text, NSError error)
         {
-            TextView.Text = error?.Description ?? text?.Text;
+            if (text != null)
+                timer?.Change(Timeout.Infinite, Timeout.Infinite);
+
+            //InvokeOnMainThread(() => { TextView.Text = error?.Description ?? text?.Text; });
         }
 
         partial void DidCaptureImage(UIButton sender)
@@ -143,9 +151,14 @@ namespace FireBaseMLVisionDemo
             {
                 CameraView.Hidden = CapturePortionView.Hidden = FlashButton.Hidden = false;
                 ImageView.Hidden = true;
-                TakePhoto.SetTitle("Capture Image", UIControlState.Normal);
+                //TakePhoto.SetTitle("Capture Image", UIControlState.Normal);
+                TakePhoto.Hidden = true;
                 FlashButton.SetTitle("On flash", UIControlState.Normal);
                 DispatchQueue.DefaultGlobalQueue.DispatchAsync(() => { aVCaptureSession.StartRunning(); });
+
+                timer?.Change(Timeout.Infinite, Timeout.Infinite);
+                timer = new Timer(HandleTimerCallback, null, 100, 10000);
+
                 return;
             }
 
@@ -155,17 +168,7 @@ namespace FireBaseMLVisionDemo
 
             FlashButton_TouchUpInside(null);
 
-            var settings = AVCapturePhotoSettings.FromFormat(NSDictionary<NSString, NSObject>.FromObjectsAndKeys(
-            new object[]
-            {
-                AVVideo.CodecJPEG,
-            },
-            new object[]
-            {
-                AVVideo.CodecKey,
-            }));
-
-            aVCapturePhotoOutput.CapturePhoto(settings, this);
+            //aVCapturePhotoOutput.CapturePhoto(settings, this);
         }
 
         public override void DidReceiveMemoryWarning()
@@ -174,25 +177,51 @@ namespace FireBaseMLVisionDemo
             // Release any cached data, images, etc that aren't in use.
         }
 
+        void HandleTimerCallback(object state)
+        {
+            using (var settings = AVCapturePhotoSettings.FromFormat(NSDictionary<NSString, NSObject>.FromObjectsAndKeys(
+            new object[]
+            {
+                AVVideo.CodecJPEG,
+            },
+            new object[]
+            {
+                AVVideo.CodecKey,
+            })))
+            {
+                try 
+                {
+                    aVCapturePhotoOutput.CapturePhoto(settings, this);
+                }
+                catch(Exception e)
+                {
+
+                }
+            }
+        }
+
+
         [Export("captureOutput:didFinishProcessingPhoto:error:")]
         public void DidFinishProcessingPhoto(AVCapturePhotoOutput output, AVCapturePhoto photo, NSError error)
         {
-            var imageData = photo.FileDataRepresentation;
-            if (imageData == null)
-                return;
+            using (var imageData = photo.FileDataRepresentation)
+            {
+                if (imageData == null)
+                    return;
 
-            var image = new UIImage(imageData);
+                using (var image = new UIImage(imageData))
+                {
+                    using (var tempImage = CropImage(image, (float)CapturePortionView.Frame.Left, (float)(CapturePortionView.Frame.Top - CapturePortionView.Frame.Height - TopLayoutGuide.Length), (float)CapturePortionView.Frame.Width, (float)CapturePortionView.Frame.Height))
+                    {
+                        //ImageView.Image = image;
 
-            image = CropImage(image, (float)CapturePortionView.Frame.Left, (float)(CapturePortionView.Frame.Top - CapturePortionView.Frame.Height - TopLayoutGuide.Length), (float)CapturePortionView.Frame.Width, (float)CapturePortionView.Frame.Height);
-
-            ImageView.Image = image;
-
-            var visionImage = new VisionImage(ImageView.Image);
-
-            textRecognizer.ProcessImage(visionImage, HandleVisionTextRecognitionCallbackHandler);
-
-            if (aVCaptureSession.Running)
-                aVCaptureSession.StopRunning();
+                        var visionImage = new VisionImage(tempImage);
+                        textRecognizer.ProcessImage(visionImage, HandleVisionTextRecognitionCallbackHandler);
+                    }
+                }
+                if (aVCaptureSession.Running)
+                    aVCaptureSession.StopRunning();
+            }
         }
 
         private UIImage CropImage(UIImage sourceImage, float crop_x, float crop_y, float width, float height)
