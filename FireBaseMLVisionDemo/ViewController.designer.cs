@@ -23,6 +23,10 @@ namespace FireBaseMLVisionDemo
 
         [Outlet]
         [GeneratedCode ("iOS Designer", "1.0")]
+        UIKit.UIButton FlashButton { get; set; }
+
+        [Outlet]
+        [GeneratedCode ("iOS Designer", "1.0")]
         UIKit.UIImageView ImageView { get; set; }
 
         [Outlet]
@@ -37,6 +41,10 @@ namespace FireBaseMLVisionDemo
         [GeneratedCode ("iOS Designer", "1.0")]
         partial void DidCaptureImage (UIKit.UIButton sender);
 
+        [Action ("FlashButton_TouchUpInside:")]
+        [GeneratedCode ("iOS Designer", "1.0")]
+        partial void FlashButton_TouchUpInside (UIKit.UIButton sender);
+
         void ReleaseDesignerOutlets ()
         {
             if (CameraView != null) {
@@ -47,6 +55,11 @@ namespace FireBaseMLVisionDemo
             if (CapturePortionView != null) {
                 CapturePortionView.Dispose ();
                 CapturePortionView = null;
+            }
+
+            if (FlashButton != null) {
+                FlashButton.Dispose ();
+                FlashButton = null;
             }
 
             if (ImageView != null) {

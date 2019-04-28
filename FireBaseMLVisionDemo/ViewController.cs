@@ -15,6 +15,7 @@ namespace FireBaseMLVisionDemo
         AVCaptureSession aVCaptureSession;
         AVCapturePhotoOutput aVCapturePhotoOutput;
         AVCaptureVideoPreviewLayer aVCaptureVideoPreviewLayer;
+        AVCaptureDevice backCamera;
 
         VisionApi vision;
         VisionTextRecognizer textRecognizer;
@@ -66,7 +67,7 @@ namespace FireBaseMLVisionDemo
             aVCaptureSession = new AVCaptureSession();
             aVCaptureSession.SessionPreset = AVCaptureSession.PresetMedium;
 
-            var backCamera = AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
+            backCamera = AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
             if (backCamera == null)
                 TextView.Text = "Unable to access camera";
 
@@ -81,6 +82,41 @@ namespace FireBaseMLVisionDemo
                 aVCaptureSession.AddOutput(aVCapturePhotoOutput);
                 SetupLivePreview();
             }
+        }
+
+        partial void FlashButton_TouchUpInside(UIButton sender)
+        {
+            if (!backCamera.HasFlash)
+                return;
+
+            NSError error;
+            var lockForConfiguration = backCamera.LockForConfiguration(out error);
+
+            if (!lockForConfiguration)
+                return;
+
+            if (CameraView.Hidden)
+            {
+                FlashButton.SetTitle("On flash", UIControlState.Normal);
+                backCamera.TorchMode = AVCaptureTorchMode.Off;
+                backCamera.FlashMode = AVCaptureFlashMode.Off;
+            }
+            else 
+            { 
+                if (backCamera.FlashMode == AVCaptureFlashMode.Off)
+                {
+                    FlashButton.SetTitle("Off flash", UIControlState.Normal);
+                    backCamera.TorchMode = AVCaptureTorchMode.On;
+                    backCamera.FlashMode = AVCaptureFlashMode.On;
+                }
+                else
+                {
+                    FlashButton.SetTitle("On flash", UIControlState.Normal);
+                    backCamera.TorchMode = AVCaptureTorchMode.Off;
+                    backCamera.FlashMode = AVCaptureFlashMode.Off;
+                }
+            }
+            backCamera.UnlockForConfiguration();
         }
 
         void SetupLivePreview()
@@ -106,15 +142,18 @@ namespace FireBaseMLVisionDemo
         {
             if(CameraView.Hidden)
             {
-                CameraView.Hidden = CapturePortionView.Hidden = false;
+                CameraView.Hidden = CapturePortionView.Hidden = FlashButton.Hidden = false;
                 ImageView.Hidden = true;
                 TakePhoto.SetTitle("Capture Image", UIControlState.Normal);
+                FlashButton.SetTitle("On flash", UIControlState.Normal);
                 return;
             }
 
-            CameraView.Hidden = CapturePortionView.Hidden = true;
+            CameraView.Hidden = CapturePortionView.Hidden = FlashButton.Hidden = true;
             ImageView.Hidden = false;
             TakePhoto.SetTitle("Open Camera", UIControlState.Normal);
+
+            FlashButton_TouchUpInside(null);
 
             var settings = AVCapturePhotoSettings.FromFormat(NSDictionary<NSString, NSObject>.FromObjectsAndKeys(
             new object[]

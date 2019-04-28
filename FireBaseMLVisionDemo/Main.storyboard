@@ -28,8 +28,8 @@
                                     <constraint id="11052" firstAttribute="width" constant="250"/>
                                 </constraints>
                             </imageView>
-                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="409">
-                                <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="409" misplaced="YES">
+                                <rect key="frame" x="2000" y="0.0" width="375" height="667"/>
                                 <subviews>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="8037">
                                         <rect key="frame" x="62.5" y="298.5" width="250" height="70"/>
@@ -46,31 +46,40 @@
                                 </constraints>
                             </view>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="413">
-                                <rect key="frame" x="46" y="587" width="46" height="30"/>
+                                <rect key="frame" x="164.5" y="587" width="46" height="30"/>
                                 <state key="normal" title="Button"/>
                                 <connections>
                                     <action selector="DidCaptureImage:" destination="BYZ-38-t0r" eventType="touchUpInside" id="423"/>
                                 </connections>
                             </button>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1128">
-                                <rect key="frame" x="297" y="596" width="42" height="21"/>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1128" text="Detected text">
+                                <rect key="frame" x="135.5" y="546.5" width="104" height="20.5"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" id="13338" translatesAutoresizingMaskIntoConstraints="NO" hidden="YES">
+                                <rect key="frame" x="292" y="587" width="37" height="30"/>
+                                <state key="normal" title="Flash"/>
+                                <connections>
+                                    <action selector="FlashButton_TouchUpInside:" destination="BYZ-38-t0r" id="13387" eventType="touchUpInside"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="wfy-db-euE" firstAttribute="top" secondItem="413" secondAttribute="bottom" constant="50" id="414"/>
-                            <constraint firstItem="413" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leadingMargin" constant="30" id="416"/>
-                            <constraint firstAttribute="trailingMargin" secondItem="1128" secondAttribute="trailing" constant="20" id="1129"/>
-                            <constraint firstAttribute="bottom" secondItem="1128" secondAttribute="bottom" constant="50" id="1130"/>
+                            <constraint firstAttribute="bottom" secondItem="1128" secondAttribute="bottom" constant="100" id="1130"/>
                             <constraint firstItem="409" firstAttribute="height" secondItem="8bC-Xf-vdC" secondAttribute="height" id="7576"/>
                             <constraint firstItem="409" firstAttribute="width" secondItem="8bC-Xf-vdC" secondAttribute="width" id="7577"/>
                             <constraint firstItem="409" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="7578"/>
                             <constraint firstAttribute="centerY" secondItem="409" secondAttribute="centerY" id="7579"/>
                             <constraint id="11050" firstItem="409" firstAttribute="centerX" secondItem="417" secondAttribute="centerX"/>
                             <constraint id="11051" firstItem="409" firstAttribute="centerY" secondItem="417" secondAttribute="centerY"/>
+                            <constraint id="13077" firstItem="1128" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX"/>
+                            <constraint id="13078" firstItem="413" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX"/>
+                            <constraint id="13361" firstItem="13338" firstAttribute="centerY" secondItem="413" secondAttribute="centerY"/>
+                            <constraint id="13362" firstAttribute="trailingMargin" secondItem="13338" secondAttribute="trailing" constant="30"/>
                         </constraints>
                     </view>
                     <connections>
@@ -79,6 +88,7 @@
                         <outlet property="TakePhoto" destination="413" id="name-outlet-413"/>
                         <outlet property="TextView" destination="1128" id="name-outlet-1128"/>
                         <outlet property="ImageView" destination="417" id="name-outlet-417"/>
+                        <outlet property="FlashButton" destination="13338" id="name-outlet-13338"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
