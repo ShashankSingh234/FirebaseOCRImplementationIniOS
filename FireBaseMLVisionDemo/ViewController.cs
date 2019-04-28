@@ -128,7 +128,6 @@ namespace FireBaseMLVisionDemo
 
             CameraView.BringSubviewToFront(CapturePortionView);
 
-            DispatchQueue.DefaultGlobalQueue.DispatchAsync(() => { aVCaptureSession.StartRunning(); });
 
             DispatchQueue.MainQueue.DispatchAsync(() => { aVCaptureVideoPreviewLayer.Frame = CameraView.Bounds; });
         }
@@ -146,6 +145,7 @@ namespace FireBaseMLVisionDemo
                 ImageView.Hidden = true;
                 TakePhoto.SetTitle("Capture Image", UIControlState.Normal);
                 FlashButton.SetTitle("On flash", UIControlState.Normal);
+                DispatchQueue.DefaultGlobalQueue.DispatchAsync(() => { aVCaptureSession.StartRunning(); });
                 return;
             }
 
@@ -190,6 +190,9 @@ namespace FireBaseMLVisionDemo
             var visionImage = new VisionImage(ImageView.Image);
 
             textRecognizer.ProcessImage(visionImage, HandleVisionTextRecognitionCallbackHandler);
+
+            if (aVCaptureSession.Running)
+                aVCaptureSession.StopRunning();
         }
 
         private UIImage CropImage(UIImage sourceImage, float crop_x, float crop_y, float width, float height)
@@ -206,16 +209,11 @@ namespace FireBaseMLVisionDemo
             return modifiedImage;
         }
 
-        [Export("captureOutput:didCapturePhotoForResolvedSettings:")]
-        public void DidCapturePhoto(AVCapturePhotoOutput captureOutput, AVCaptureResolvedPhotoSettings resolvedSettings)
-        {
-
-        }
-
         public override void ViewWillDisappear(bool animated)
         {
             base.ViewWillDisappear(animated);
-            aVCaptureSession.StopRunning();
+            if (aVCaptureSession.Running)
+                aVCaptureSession.StopRunning();
         }
 
     }
