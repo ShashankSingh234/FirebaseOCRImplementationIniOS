@@ -7,15 +7,25 @@ using CoreFoundation;
 using CoreMedia;
 using CoreGraphics;
 using System.Drawing;
+using CoreVideo;
 
 namespace FireBaseMLVisionDemo
 {
-    public partial class ViewController : UIViewController, IAVCapturePhotoCaptureDelegate
+    public partial class ViewController : UIViewController, IAVCapturePhotoCaptureDelegate, IAVCaptureVideoDataOutputSampleBufferDelegate
     {
         AVCaptureSession aVCaptureSession;
-        AVCapturePhotoOutput aVCapturePhotoOutput;
+        //AVCapturePhotoOutput aVCapturePhotoOutput;
+        AVCaptureVideoDataOutput aVCaptureVideoDataOutput;
         AVCaptureVideoPreviewLayer aVCaptureVideoPreviewLayer;
         AVCaptureDevice backCamera;
+        VisionImageMetadata metaData;
+        //public CaptureVideoDelegate captureVideoDelegate;
+        bool ignoreFirstFrame = true;
+        //public AVCaptureVideoPreviewLayer previewLayer;
+        //public AVCaptureSession captureSession;
+        //public AVCaptureDevice captureDevice;
+        //public AVCaptureDeviceInput captureDeviceInput;
+        //public AVCaptureVideoDataOutput captureVideoOutput;
 
         VisionApi vision;
         VisionTextRecognizer textRecognizer;
@@ -33,39 +43,77 @@ namespace FireBaseMLVisionDemo
 
             TakePhoto.SetTitle("Open camera", UIControlState.Normal);
 
-            //using (CGContext g = UIGraphics.GetCurrentContext())
-            //{
-
-            //    //set up drawing attributes
-            //    g.SetLineWidth(10);
-            //    UIColor.Blue.SetFill();
-            //    UIColor.Red.SetStroke();
-
-            //    //create geometry
-            //    var path = new CGPath();
-
-            //    path.AddLines(new CGPoint[]{
-            //        new CGPoint (100, 200),
-            //        new CGPoint (160, 100),
-            //        new CGPoint (220, 200)});
-
-            //    path.CloseSubpath();
-
-            //    //add geometry to graphics context and draw it
-            //    g.AddPath(path);
-            //    g.DrawPath(CGPathDrawingMode.FillStroke);
-            //}
-
             CapturePortionView.Layer.BorderColor = UIColor.Cyan.CGColor;
             CapturePortionView.Layer.BorderWidth = 2.0f;
             // Perform any additional setup after loading the view, typically from a nib.
+
+            //SetupVideoCaptureSession();
         }
+
+        //public void SetupVideoCaptureSession()
+        //{
+        //    // Create notifier delegate class 
+        //    captureVideoDelegate = new CaptureVideoDelegate();
+
+        //    // Create capture session
+        //    captureSession = new AVCaptureSession();
+        //    captureSession.BeginConfiguration();
+        //    captureSession.SessionPreset = AVCaptureSession.Preset640x480;
+
+        //    // Create capture device
+        //    captureDevice = AVCaptureDevice.DefaultDeviceWithMediaType(AVMediaType.Video);
+
+        //    // Create capture device input
+        //    NSError error;
+        //    captureDeviceInput = new AVCaptureDeviceInput(captureDevice, out error);
+        //    captureSession.AddInput(captureDeviceInput);
+
+        //    // Create capture device output
+        //    captureVideoOutput = new AVCaptureVideoDataOutput();
+        //    captureVideoOutput.AlwaysDiscardsLateVideoFrames = true;
+        //    // UPDATE: Wrong videosettings assignment
+        //    //captureVideoOutput.VideoSettings.PixelFormat = CVPixelFormatType.CV32BGRA;
+        //    // UPDATE Correct videosettings assignment
+        //    var settings = new AVVideoSettingsUncompressed();
+        //    settings.PixelFormatType = CVPixelFormatType.CV32BGRA;
+        //    captureVideoOutput.WeakVideoSettings = settings.Dictionary;
+        //    captureVideoOutput.MinFrameDuration = new CMTime(1, 30);
+        //    DispatchQueue dispatchQueue = new DispatchQueue("VideoCaptureQueue");
+        //    captureVideoOutput.SetSampleBufferDelegateQueue(this, dispatchQueue);
+        //    captureSession.AddOutput(captureVideoOutput);
+
+        //    // Create preview layer
+        //    previewLayer = AVCaptureVideoPreviewLayer.FromSession(captureSession);
+        //    previewLayer.Orientation = AVCaptureVideoOrientation.LandscapeLeft;
+        //    previewLayer.VideoGravity = AVLayerVideoGravity.ResizeAspectFill;
+        //    previewLayer.Frame = new RectangleF(0, 0, 1024, 768);
+        //    this.View.Layer.AddSublayer(previewLayer);
+
+        //    // Start capture session
+        //    captureSession.CommitConfiguration();
+        //    captureSession.StartRunning();
+        //}
+
 
         public override void ViewDidAppear(bool animated)
         {
             base.ViewDidAppear(animated);
+
             aVCaptureSession = new AVCaptureSession();
-            aVCaptureSession.SessionPreset = AVCaptureSession.PresetMedium;
+            aVCaptureSession.SessionPreset = AVCaptureSession.PresetPhoto;
+
+            //var availableDevice = AVCaptureDeviceDiscoverySession.Create(AVCaptureDeviceType.BuiltInWideAngleCamera, CMMediaType.Video, AVCaptureDevicePosition.Back);
+
+            aVCaptureVideoPreviewLayer = new AVCaptureVideoPreviewLayer(aVCaptureSession);
+            aVCaptureVideoPreviewLayer.VideoGravity = AVLayerVideoGravity.Resize;
+            //aVCaptureVideoPreviewLayer.Connection.VideoOrientation = AVCaptureVideoOrientation.Portrait;
+            CameraView.Layer.AddSublayer(aVCaptureVideoPreviewLayer);
+
+            CameraView.BringSubviewToFront(CapturePortionView);
+
+            //aVCaptureSession.StartRunning();
+
+            aVCaptureVideoPreviewLayer.Frame = CameraView.Bounds;
 
             backCamera = AVCaptureDevice.GetDefaultDevice(AVMediaTypes.Video);
             if (backCamera == null)
@@ -74,63 +122,74 @@ namespace FireBaseMLVisionDemo
             NSError error;
             var input = new AVCaptureDeviceInput(backCamera, out error);
 
-            aVCapturePhotoOutput = new AVCapturePhotoOutput();
+            //aVCapturePhotoOutput = new AVCapturePhotoOutput();
+            aVCaptureVideoDataOutput = new AVCaptureVideoDataOutput();
+            var settings = new AVVideoSettingsUncompressed();
+            settings.PixelFormatType = CVPixelFormatType.CV32BGRA;
+            aVCaptureVideoDataOutput.WeakVideoSettings = settings.Dictionary;
+            aVCaptureVideoDataOutput.AlwaysDiscardsLateVideoFrames = true;
 
-            if(aVCaptureSession.CanAddInput(input) && aVCaptureSession.CanAddOutput(aVCapturePhotoOutput))
+            if (aVCaptureSession.CanAddInput(input) && aVCaptureSession.CanAddOutput(aVCaptureVideoDataOutput))
             {
                 aVCaptureSession.AddInput(input);
-                aVCaptureSession.AddOutput(aVCapturePhotoOutput);
-                SetupLivePreview();
+                aVCaptureSession.AddOutput(aVCaptureVideoDataOutput);
+                aVCaptureSession.CommitConfiguration();
+                var queue = new DispatchQueue("Queue");
+                aVCaptureVideoDataOutput.SetSampleBufferDelegateQueue(this, queue);
+                //SetupLivePreview();
             }
         }
 
         partial void FlashButton_TouchUpInside(UIButton sender)
         {
-            if (!backCamera.HasFlash)
-                return;
+            //if (!backCamera.HasFlash)
+            //    return;
 
-            NSError error;
-            var lockForConfiguration = backCamera.LockForConfiguration(out error);
+            //NSError error;
+            //var lockForConfiguration = backCamera.LockForConfiguration(out error);
 
-            if (!lockForConfiguration)
-                return;
+            //if (!lockForConfiguration)
+            //    return;
 
-            if (CameraView.Hidden)
-            {
-                FlashButton.SetTitle("On flash", UIControlState.Normal);
-                backCamera.TorchMode = AVCaptureTorchMode.Off;
-                backCamera.FlashMode = AVCaptureFlashMode.Off;
-            }
-            else 
-            { 
-                if (backCamera.FlashMode == AVCaptureFlashMode.Off)
-                {
-                    FlashButton.SetTitle("Off flash", UIControlState.Normal);
-                    backCamera.TorchMode = AVCaptureTorchMode.On;
-                    backCamera.FlashMode = AVCaptureFlashMode.On;
-                }
-                else
-                {
-                    FlashButton.SetTitle("On flash", UIControlState.Normal);
-                    backCamera.TorchMode = AVCaptureTorchMode.Off;
-                    backCamera.FlashMode = AVCaptureFlashMode.Off;
-                }
-            }
-            backCamera.UnlockForConfiguration();
+            //if (CameraView.Hidden)
+            //{
+            //    FlashButton.SetTitle("On flash", UIControlState.Normal);
+            //    backCamera.TorchMode = AVCaptureTorchMode.Off;
+            //    backCamera.FlashMode = AVCaptureFlashMode.Off;
+            //}
+            //else 
+            //{ 
+            //    if (backCamera.FlashMode == AVCaptureFlashMode.Off)
+            //    {
+            //        FlashButton.SetTitle("Off flash", UIControlState.Normal);
+            //        backCamera.TorchMode = AVCaptureTorchMode.On;
+            //        backCamera.FlashMode = AVCaptureFlashMode.On;
+            //    }
+            //    else
+            //    {
+            //        FlashButton.SetTitle("On flash", UIControlState.Normal);
+            //        backCamera.TorchMode = AVCaptureTorchMode.Off;
+            //        backCamera.FlashMode = AVCaptureFlashMode.Off;
+            //    }
+            //}
+            //backCamera.UnlockForConfiguration();
         }
 
         void SetupLivePreview()
         {
-            aVCaptureVideoPreviewLayer = new AVCaptureVideoPreviewLayer(aVCaptureSession);
-            aVCaptureVideoPreviewLayer.VideoGravity = AVLayerVideoGravity.Resize;
-            aVCaptureVideoPreviewLayer.Connection.VideoOrientation = AVCaptureVideoOrientation.Portrait;
-            CameraView.Layer.AddSublayer(aVCaptureVideoPreviewLayer);
+            //aVCaptureVideoPreviewLayer = new AVCaptureVideoPreviewLayer(aVCaptureSession);
+            //aVCaptureVideoPreviewLayer.VideoGravity = AVLayerVideoGravity.Resize;
+            //aVCaptureVideoPreviewLayer.Connection.VideoOrientation = AVCaptureVideoOrientation.Portrait;
+            //CameraView.Layer.AddSublayer(aVCaptureVideoPreviewLayer);
 
-            CameraView.BringSubviewToFront(CapturePortionView);
+            //CameraView.BringSubviewToFront(CapturePortionView);
 
-            DispatchQueue.DefaultGlobalQueue.DispatchAsync(() => { aVCaptureSession.StartRunning(); });
+            //aVCaptureSession.StartRunning();
 
-            DispatchQueue.MainQueue.DispatchAsync(() => { aVCaptureVideoPreviewLayer.Frame = CameraView.Bounds; });
+            //aVCaptureVideoPreviewLayer.Frame = CameraView.Bounds;
+            //DispatchQueue.DefaultGlobalQueue.DispatchAsync(() => { aVCaptureSession.StartRunning(); });
+
+            //DispatchQueue.MainQueue.DispatchAsync(() => { aVCaptureVideoPreviewLayer.Frame = CameraView.Bounds; });
         }
 
         private void HandleVisionTextRecognitionCallbackHandler(VisionText text, NSError error)
@@ -146,6 +205,8 @@ namespace FireBaseMLVisionDemo
                 ImageView.Hidden = true;
                 TakePhoto.SetTitle("Capture Image", UIControlState.Normal);
                 FlashButton.SetTitle("On flash", UIControlState.Normal);
+                aVCaptureSession.StartRunning();
+
                 return;
             }
 
@@ -153,19 +214,20 @@ namespace FireBaseMLVisionDemo
             ImageView.Hidden = false;
             TakePhoto.SetTitle("Open Camera", UIControlState.Normal);
 
-            FlashButton_TouchUpInside(null);
+            //FlashButton_TouchUpInside(null);
 
-            var settings = AVCapturePhotoSettings.FromFormat(NSDictionary<NSString, NSObject>.FromObjectsAndKeys(
-            new object[]
-            {
-                AVVideo.CodecJPEG,
-            },
-            new object[]
-            {
-                AVVideo.CodecKey,
-            }));
+            aVCaptureSession.StopRunning();
+            //var settings = AVCapturePhotoSettings.FromFormat(NSDictionary<NSString, NSObject>.FromObjectsAndKeys(
+            //new object[]
+            //{
+            //    AVVideo.CodecJPEG,
+            //},
+            //new object[]
+            //{
+            //    AVVideo.CodecKey,
+            //}));
 
-            aVCapturePhotoOutput.CapturePhoto(settings, this);
+            //aVCapturePhotoOutput.CapturePhoto(settings, this);
         }
 
         public override void DidReceiveMemoryWarning()
@@ -177,19 +239,19 @@ namespace FireBaseMLVisionDemo
         [Export("captureOutput:didFinishProcessingPhoto:error:")]
         public void DidFinishProcessingPhoto(AVCapturePhotoOutput output, AVCapturePhoto photo, NSError error)
         {
-            var imageData = photo.FileDataRepresentation;
-            if (imageData == null)
-                return;
+            //var imageData = photo.FileDataRepresentation;
+            //if (imageData == null)
+            //    return;
 
-            var image = new UIImage(imageData);
+            //var image = new UIImage(imageData);
 
-            image = CropImage(image, (float)CapturePortionView.Frame.Left, (float)(CapturePortionView.Frame.Top - CapturePortionView.Frame.Height - TopLayoutGuide.Length), (float)CapturePortionView.Frame.Width, (float)CapturePortionView.Frame.Height);
+            //image = CropImage(image, (float)CapturePortionView.Frame.Left, (float)(CapturePortionView.Frame.Top - CapturePortionView.Frame.Height - TopLayoutGuide.Length), (float)CapturePortionView.Frame.Width, (float)CapturePortionView.Frame.Height);
 
-            ImageView.Image = image;
+            //ImageView.Image = image;
 
-            var visionImage = new VisionImage(ImageView.Image);
+            //var visionImage = new VisionImage(ImageView.Image);
 
-            textRecognizer.ProcessImage(visionImage, HandleVisionTextRecognitionCallbackHandler);
+            //textRecognizer.ProcessImage(visionImage, HandleVisionTextRecognitionCallbackHandler);
         }
 
         private UIImage CropImage(UIImage sourceImage, float crop_x, float crop_y, float width, float height)
@@ -209,14 +271,114 @@ namespace FireBaseMLVisionDemo
         [Export("captureOutput:didCapturePhotoForResolvedSettings:")]
         public void DidCapturePhoto(AVCapturePhotoOutput captureOutput, AVCaptureResolvedPhotoSettings resolvedSettings)
         {
-
         }
 
         public override void ViewWillDisappear(bool animated)
         {
             base.ViewWillDisappear(animated);
-            aVCaptureSession.StopRunning();
+            //aVCaptureSession.StopRunning();
         }
 
+        [Export("captureOutput:didOutputSampleBuffer:fromConnection:")]
+        public void DidOutputSampleBuffer(AVCaptureOutput captureOutput, CMSampleBuffer sampleBuffer, AVCaptureConnection connection)
+        {
+            //var pixelSample = sampleBuffer.GetImageBuffer() as CVPixelBuffer;
+            //if (metaData == null)
+            //{
+            //    metaData = new VisionImageMetadata();
+
+            //    var devicePosition = AVCaptureDevicePosition.Back;
+            //    var deviceOrientation = UIDevice.CurrentDevice.Orientation;
+
+            //    switch (deviceOrientation)
+            //    {
+            //        case UIDeviceOrientation.Portrait:
+            //            metaData.Orientation = devicePosition == AVCaptureDevicePosition.Front ? VisionDetectorImageOrientation.LeftTop : VisionDetectorImageOrientation.RightTop;
+            //            break;
+            //        case UIDeviceOrientation.LandscapeLeft:
+            //            metaData.Orientation = devicePosition == AVCaptureDevicePosition.Front ? VisionDetectorImageOrientation.BottomLeft : VisionDetectorImageOrientation.TopLeft;
+            //            break;
+            //        case UIDeviceOrientation.PortraitUpsideDown:
+            //            metaData.Orientation = devicePosition == AVCaptureDevicePosition.Front ? VisionDetectorImageOrientation.RightBottom : VisionDetectorImageOrientation.LeftBottom;
+            //            break;
+            //        case UIDeviceOrientation.LandscapeRight:
+            //            metaData.Orientation = devicePosition == AVCaptureDevicePosition.Front ? VisionDetectorImageOrientation.TopRight : VisionDetectorImageOrientation.BottomRight;
+            //            break;
+            //        case UIDeviceOrientation.FaceUp:
+            //        case UIDeviceOrientation.FaceDown:
+            //        case UIDeviceOrientation.Unknown:
+            //            metaData.Orientation = VisionDetectorImageOrientation.LeftTop;
+            //            break;
+            //    }
+            //}
+            //var visionImage = new VisionImage(sampleBuffer);
+            //sampleBuffer.Dispose();
+            //visionImage.Metadata = metaData;
+            //metaData.Dispose();
+            //textRecognizer.ProcessImage(visionImage, HandleVisionTextRecognitionCallbackHandler);
+            //visionImage.Dispose();
+
+            try
+            {
+                if (connection.SupportsVideoOrientation)
+                    connection.VideoOrientation = AVCaptureVideoOrientation.Portrait;
+
+                if (ignoreFirstFrame)
+                {
+                    ignoreFirstFrame = false;
+                    return;
+                }
+
+                // Get the CoreVideo image
+                using (var pixelBuffer = sampleBuffer.GetImageBuffer() as CVPixelBuffer)
+                {
+                    // Lock the base address
+                    pixelBuffer.Lock(CVPixelBufferLock.None);
+                    // Get the number of bytes per row for the pixel buffer
+
+                    var baseAddress = pixelBuffer.BaseAddress;
+                    nint bytesPerRow = pixelBuffer.BytesPerRow;
+                    nint width = pixelBuffer.Width;
+                    nint height = pixelBuffer.Height;
+
+                    var flags = CGBitmapFlags.PremultipliedFirst | CGBitmapFlags.ByteOrder32Little;
+                    // Create a CGImage on the RGB colorspace from the configured parameter above
+                    using (var cs = CGColorSpace.CreateDeviceRGB())
+                    using (var context = new CGBitmapContext(baseAddress, width, height, 8, bytesPerRow, cs, flags))
+                    using (var cgImage = context.ToImage())
+                    {
+                        pixelBuffer.Unlock(CVPixelBufferLock.None);
+                        var CapturedImage = UIImage.FromImage(cgImage);
+
+                        InvokeOnMainThread(() => {
+                            CapturedImage = CropImage(CapturedImage, (float)CapturePortionView.Frame.Left, (float)(CapturePortionView.Frame.Top - CapturePortionView.Frame.Height - TopLayoutGuide.Length), (float)CapturePortionView.Frame.Width, (float)CapturePortionView.Frame.Height);
+                            ImageView.Image = CapturedImage;
+                        });
+                        var visionImage = new VisionImage(CapturedImage);
+                        textRecognizer.ProcessImage(visionImage, HandleVisionTextRecognitionCallbackHandler);
+                        visionImage.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                sampleBuffer.Dispose();
+            }
+        }
     }
+
+    //public class CaptureVideoDelegate : AVCaptureVideoDataOutputSampleBufferDelegate
+    //{
+    //    public CaptureVideoDelegate() : base()
+    //    {
+    //    }
+
+    //    public override void DidOutputSampleBuffer(AVCaptureOutput captureOutput, CMSampleBuffer sampleBuffer, AVCaptureConnection connection)
+    //    {
+    //        // TODO: Implement buffer processing
+
+    //        // Very important (buffer needs to be disposed or it will freeze)
+    //        sampleBuffer.Dispose();
+    //    }
+    //}
 }
