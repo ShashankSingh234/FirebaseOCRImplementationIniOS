@@ -254,6 +254,15 @@ namespace FireBaseMLVisionDemo
             //textRecognizer.ProcessImage(visionImage, HandleVisionTextRecognitionCallbackHandler);
         }
 
+        public UIImage ResizeImage(UIImage sourceImage, float width, float height)
+        {
+            UIGraphics.BeginImageContext(new SizeF(width, height));
+            sourceImage.Draw(new RectangleF(0, 0, width, height));
+            var resultImage = UIGraphics.GetImageFromCurrentImageContext();
+            UIGraphics.EndImageContext();
+            return resultImage;
+        }
+
         private UIImage CropImage(UIImage sourceImage, float crop_x, float crop_y, float width, float height)
         {
             var imgSize = sourceImage.Size;
@@ -351,7 +360,8 @@ namespace FireBaseMLVisionDemo
                         var CapturedImage = UIImage.FromImage(cgImage);
 
                         InvokeOnMainThread(() => {
-                            CapturedImage = CropImage(CapturedImage, (float)CapturePortionView.Frame.Left, (float)(CapturePortionView.Frame.Top - CapturePortionView.Frame.Height - TopLayoutGuide.Length), (float)CapturePortionView.Frame.Width, (float)CapturePortionView.Frame.Height);
+                            CapturedImage = ResizeImage(CapturedImage, (float)View.Frame.Width, (float)View.Frame.Height);
+                            CapturedImage = CropImage(CapturedImage, (float)CapturePortionView.Frame.Left, (float)CapturePortionView.Frame.Top, (float)CapturePortionView.Frame.Width, (float)CapturePortionView.Frame.Height);
                             ImageView.Image = CapturedImage;
                         });
                         var visionImage = new VisionImage(CapturedImage);
