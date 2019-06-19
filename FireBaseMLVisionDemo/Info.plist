@@ -35,7 +35,7 @@
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/AppIcon.appiconset</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.FrontierPrecision.FieldSeeker</string>
+	<string>com.davincilock.mobile</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Camera usage</string>
 </dict>
